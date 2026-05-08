@@ -569,6 +569,33 @@ class BybitClient:
         except Exception as e:
             logger.debug(f"Get positions error: {e}")
             return []
+        
+    def get_closed_pnl(self, limit: int = 20) -> list:
+        """Get recently closed trades / pnl."""
+
+        if not self.client:
+            return []
+
+        try:
+            result = self.client.get_closed_pnl(
+                category="linear",
+                limit=limit
+            )
+
+            if result.get("retCode") != 0:
+                logger.error(
+                    f"Closed PnL error: "
+                    f"{result.get('retMsg')}"
+                )
+                return []
+
+            return result["result"]["list"]
+
+        except Exception as e:
+            logger.error(
+                f"Get closed pnl error: {e}"
+            )
+            return []    
 
     def close_position(self, symbol: str) -> bool:
         """Close open position for a symbol."""

@@ -122,7 +122,13 @@ class TelegramCommands:
         from_id = str(
             message.get("chat", {}).get("id", "")
         )
-
+        
+        # ✅ DUPLICATE UPDATE FIX
+        update_id = update.get("update_id")
+        if hasattr(self, "last_update_id") and self.last_update_id == update_id:
+            return
+        self.last_update_id = update_id 
+        
         # Security check
         if from_id != self.chat_id:
             return
@@ -248,37 +254,45 @@ class TelegramCommands:
 
         client = self.bot_ref.exchange
 
-        positions = client.get_positions()
+        positions = [
+            p for p in client.get_positions()
+            if float(p.get("size", 0)) > 0
+        ]
 
         if not positions:
             self._send("<b>No open position</b>")
             return
 
-        pos = positions[0]
+        msg = "<b>LIVE POSITIONS</b>\n"
 
-        side = pos.get("side", "")
-        size = float(pos.get("size", 0))
-        entry = float(pos.get("avgPrice", 0))
-        mark = float(pos.get("markPrice", 0))
-        liq = float(pos.get("liqPrice", 0))
-        pnl = float(pos.get("unrealisedPnl", 0))
-        leverage = pos.get("leverage", "N/A")
+        for pos in positions:
 
-        symbol = pos.get("symbol", "UNKNOWN")
+            side = pos.get("side", "")
+            size = float(pos.get("size", 0))
+            entry = float(pos.get("avgPrice", 0))
+            mark = float(pos.get("markPrice", 0))
+            liq = float(pos.get("liqPrice", 0))
+            pnl = float(pos.get("unrealisedPnl", 0))
+            leverage = pos.get("leverage", "N/A")
 
-        msg = (
-            "<b>LIVE POSITION</b>\n"
-            "========================\n"
-            f"Pair      : {symbol}\n"
-            f"Side      : {side}\n"
-            f"Size      : {size}\n"
-            f"Entry     : ${entry:,.2f}\n"
-            f"Mark      : ${mark:,.2f}\n"
-            f"Liq Price : ${liq:,.2f}\n"
-            f"PnL       : ${pnl:,.2f}\n"
-            f"Leverage  : {leverage}x\n"
-            "========================"
-        )
+            symbol = pos.get("symbol", "UNKNOWN")
+
+            sl = pos.get("stopLoss", "Not Set")
+            tp = pos.get("takeProfit", "Not Set")
+
+            msg += (
+                "\n========================\n"
+                f"Pair      : {symbol}\n"
+                f"Side      : {side}\n"
+                f"Size      : {size}\n"
+                f"Entry     : ${entry:,.4f}\n"
+                f"Mark      : ${mark:,.4f}\n"
+                f"SL        : {sl}\n"
+                f"TP        : {tp}\n"
+                f"Liq Price : ${liq:,.4f}\n"
+                f"PnL       : ${pnl:+,.2f}\n"
+                f"Leverage  : {leverage}x\n"
+            )
 
         self._send(msg)
 
@@ -318,7 +332,11 @@ class TelegramCommands:
 
     def _cmd_trades(self):
         """Last 5 closed trades."""
-        closed = self.paper_trader.closed_positions
+        if not self.bot_ref or not hasattr(self.bot_ref, "exchange"):
+            self._send("❌ Exchange not available")
+            return
+
+        closed = self.bot_ref.exchange.get_closed_pnl()
 
         if not closed:
             self._send(
@@ -343,12 +361,12 @@ class TelegramCommands:
         )
 
         for trade in recent:
-            pnl    = trade.get("total_pnl", 0)
-            reason = trade.get("exit_reason", "?")
-            entry  = trade.get("entry_price", 0)
-            exit_p = trade.get("exit_price", 0)
-            pair   = trade.get("pair", "?")
-            direct = trade.get("direction", "?")
+            pnl = float(trade.get("closedPnl", 0))
+            entry = float(trade.get("avgEntryPrice", 0))
+            exit_p = float(trade.get("avgExitPrice", 0))
+            pair = trade.get("symbol", "?")
+            direct = trade.get("side", "?")
+            reason = trade.get("execType", "Closed")
 
             result = "WIN" if pnl > 0 else "LOSS"
 

@@ -771,12 +771,32 @@ class TradingBot:
             status  = self.risk_manager.get_status(
                 balance
             )
-            metrics = self.performance.get_metrics(
-                balance
+            closed = self.exchange.get_closed_pnl()
+
+            total_trades = len(closed)
+
+            wins = len([
+                t for t in closed
+                if float(t.get("closedPnl", 0)) > 0
+            ])
+
+            win_rate = (
+                round(wins / total_trades * 100, 1)
+                if total_trades > 0 else 0
+            )
+
+            metrics = {
+                "total_trades": total_trades,
+                "win_rate": win_rate
+            }
+
+            daily_pnl = sum(
+                float(t.get("closedPnl", 0))
+                for t in closed
             )
             self.telegram.daily_summary(
                 balance      = balance,
-                daily_pnl    = status["daily_pnl"],
+                daily_pnl    = daily_pnl,
                 total_trades = metrics["total_trades"],
                 win_rate     = metrics["win_rate"],
                 open_trades  = len(
