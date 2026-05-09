@@ -197,10 +197,47 @@ class TelegramCommands:
 
     def _cmd_status(self):
         """Full status."""
-        balance  = self.paper_trader.current_balance
+        balance = self.paper_trader.current_balance
         open_pos = self.paper_trader.open_positions
-        metrics  = self.performance.get_metrics(balance)
-        status   = self.risk_manager.get_status(balance)
+        status = self.risk_manager.get_status(balance)
+
+        # Get real closed trade data from Bybit
+        if self.bot_ref and hasattr(self.bot_ref, "exchange"):
+           closed = self.bot_ref.exchange.get_closed_pnl()
+        else:
+            closed = []
+
+        total_trades = len(closed)
+
+        wins = len([
+            t for t in closed
+            if float(t.get("closedPnl", 0)) > 0
+        ])
+
+        win_rate = (
+            round(wins / total_trades * 100, 1)
+            if total_trades > 0 else 0
+        )
+
+        total_pnl = sum(
+            float(t.get("closedPnl", 0))
+            for t in closed
+        )
+
+        daily_pnl = total_pnl
+
+        starting_balance = self.paper_trader.starting_balance
+
+        total_return = (
+            (total_pnl / starting_balance) * 100
+            if starting_balance > 0 else 0
+        )
+
+        metrics = {
+            "total_trades": total_trades,
+            "win_rate": win_rate,
+            "total_return": total_return
+        }
 
         if open_pos:
             pos_lines = []
@@ -226,23 +263,18 @@ class TelegramCommands:
             f"========================\n"
             f"Mode       : {pause_str}\n"
             f"Balance    : ${balance:,.2f}\n"
-            f"Daily P&L  : "
-            f"${status['daily_pnl']:+,.2f}\n"
-            f"Drawdown   : "
-            f"{status['drawdown_pct']:.2f}%\n"
+            f"Daily P&L  : ${daily_pnl:+,.2f}\n"
+            f"Drawdown   : {status['drawdown_pct']:.2f}%\n"
             f"========================\n"
             f"Open trades: {len(open_pos)}\n"
-            f"Total trades: "
-            f"{metrics['total_trades']}\n"
+            f"Total trades: {metrics['total_trades']}\n"
             f"Win rate   : {metrics['win_rate']}%\n"
-            f"Total return: "
-            f"{metrics['total_return']:+.2f}%\n"
+            f"Total return: {metrics['total_return']:+.2f}%\n"
             f"========================\n"
             f"<b>Positions:</b>{pos_str}\n"
             f"========================\n"
             f"Uptime: {self.health.get_uptime()}\n"
-            f"Time: "
-            f"{datetime.utcnow().strftime('%H:%M')} UTC"
+            f"Time: {datetime.utcnow().strftime('%H:%M')} UTC"
         )
 
     def _cmd_positions(self):
