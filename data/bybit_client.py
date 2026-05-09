@@ -571,7 +571,7 @@ class BybitClient:
             return []
         
     def get_closed_pnl(self, limit: int = 20) -> list:
-        """Get recently closed trades."""
+        """Get recently closed trades and remove duplicate executions."""
 
         if not self.client:
             return []
@@ -584,42 +584,47 @@ class BybitClient:
 
             if result.get("retCode") != 0:
                 logger.error(
-                    f"Closed PnL error: "
-                    f"{result.get('retMsg')}"
+                    f"Closed PnL error: {result.get('retMsg')}"
                 )
                 return []
 
             raw = result["result"]["list"]
 
-            # Remove duplicates
-            seen = set()
-            cleaned = []
+            # Group by orderId so one trade appears only once
+            grouped = {}
 
             for trade in raw:
-
                 order_id = trade.get("orderId")
-
-                if order_id in seen:
+                if not order_id:
                     continue
 
-                seen.add(order_id)
+                pnl = float(trade.get("closedPnl", 0))
 
-                pnl = float(
-                    trade.get("closedPnl", 0)
-                )
+                # Keep only the record with the largest absolute PnL
+                if (
+                    order_id not in grouped
+                    or abs(pnl) > abs(
+                        float(
+                            grouped[order_id].get(
+                                "closedPnl", 0
+                            )
+                        )
+                    )
+                ):
+                    grouped[order_id] = trade
 
-                # Skip tiny execution fragments
-                if abs(pnl) < 1:
-                   continue
+            # Convert to list and sort by update time
+            cleaned = list(grouped.values())
 
-                cleaned.append(trade)
+            cleaned.sort(
+                key=lambda x: int(x.get("updatedTime", 0)),
+                reverse=False
+            )
 
             return cleaned
 
         except Exception as e:
-            logger.error(
-                f"Get closed pnl error: {e}"
-            )
+            logger.error(f"Get closed pnl error: {e}")
             return []
     
     def close_position(self, symbol: str) -> bool:

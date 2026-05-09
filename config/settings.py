@@ -43,13 +43,13 @@ SCAN_MIN_PRICE   = 0.01      # Min price filter
 SCAN_INTERVAL    = 3600      # Rescan every 1 hour (seconds)
 
 # ── RISK SETTINGS ─────────────────────────────────────────
-RISK_PER_TRADE        = 0.01   # 1% of account per trade
-MAX_DAILY_LOSS        = 0.05   # 5% daily loss limit
-MAX_CONCURRENT_TRADES = 3      # Max open trades at once
-MAX_DRAWDOWN          = 0.15   # 15% drawdown kill switch
-MIN_CONFIDENCE        = 0.55   # Min signal confidence
-MAX_POSITION_PCT      = 0.30   # Max 30% per position
-MIN_NOTIONAL          = 5.0    # Min order value in USDT
+RISK_PER_TRADE        = 0.01   # 1% risk = approx $5 max loss
+MAX_DAILY_LOSS        = 0.05   # 5% daily stop
+MAX_CONCURRENT_TRADES = 3
+MAX_DRAWDOWN          = 0.15
+MIN_CONFIDENCE        = 0.55
+MAX_POSITION_PCT      = 0.10   # Use only 10% of balance
+MIN_NOTIONAL          = 5.0
 
 # ── LEVERAGE SETTINGS ─────────────────────────────────────
 BASE_LEVERAGE = 3    # Starting leverage
