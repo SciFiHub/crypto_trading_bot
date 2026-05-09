@@ -348,11 +348,15 @@ class TelegramCommands:
         recent = list(reversed(closed[-5:]))
 
         total_pnl = sum(
-            t.get("total_pnl", 0) for t in closed
+            float(t.get("closedPnl", 0))
+            for t in closed
         )
+
         wins = len(
-            [t for t in closed
-             if t.get("total_pnl", 0) > 0]
+            [
+                t for t in closed
+                if float(t.get("closedPnl", 0)) > 0
+            ]
         )
 
         msg = (
