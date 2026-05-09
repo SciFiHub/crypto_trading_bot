@@ -571,7 +571,7 @@ class BybitClient:
             return []
         
     def get_closed_pnl(self, limit: int = 20) -> list:
-        """Get recently closed trades / pnl."""
+        """Get recently closed trades."""
 
         if not self.client:
             return []
@@ -589,14 +589,39 @@ class BybitClient:
                 )
                 return []
 
-            return result["result"]["list"]
+            raw = result["result"]["list"]
+
+            # Remove duplicates
+            seen = set()
+            cleaned = []
+
+            for trade in raw:
+
+                order_id = trade.get("orderId")
+
+                if order_id in seen:
+                    continue
+
+                seen.add(order_id)
+
+                pnl = float(
+                    trade.get("closedPnl", 0)
+                )
+
+                # Skip tiny execution fragments
+                if abs(pnl) < 1:
+                   continue
+
+                cleaned.append(trade)
+
+            return cleaned
 
         except Exception as e:
             logger.error(
                 f"Get closed pnl error: {e}"
             )
-            return []    
-
+            return []
+    
     def close_position(self, symbol: str) -> bool:
         """Close open position for a symbol."""
         if not self.client:
