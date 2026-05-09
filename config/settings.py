@@ -51,6 +51,8 @@ MIN_CONFIDENCE        = 0.55
 MAX_POSITION_PCT      = 0.10   # Use only 10% of balance
 MIN_NOTIONAL          = 5.0
 
+BOT_RESET_DATE = "2026-05-09" #bot_Reset_Day
+
 # ── LEVERAGE SETTINGS ─────────────────────────────────────
 BASE_LEVERAGE = 3    # Starting leverage
 MAX_LEVERAGE  = 10   # Maximum allowed leverage

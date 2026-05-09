@@ -589,6 +589,20 @@ class BybitClient:
                 return []
 
             raw = result["result"]["list"]
+            from config import settings
+            from datetime import datetime
+ 
+            reset_ts = int(
+                datetime.strptime(
+                    settings.BOT_RESET_DATE,
+                    "%Y-%m-%d"
+                ).timestamp() * 1000
+            )
+
+            raw = [
+                trade for trade in raw
+                if int(trade.get("updatedTime", 0)) >= reset_ts
+            ]
 
             # Group by orderId so one trade appears only once
             grouped = {}
